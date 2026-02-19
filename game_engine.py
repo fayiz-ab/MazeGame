@@ -8,32 +8,62 @@ import settings
 
 def create_maze(size, path_probability): 
     # Génère une grille de labyrinthe de manière aléatoire
-    maze = [[None for _ in range(size)] for _ in range(size)] # Initialisation d'une matrice vide pour représenter le labyrinthe
-    last_index = size - 1 
-    corners = [[0,0], [0,last_index], [last_index,0], [last_index,last_index]] # Création d'une liste avec les coordonnées des quatre coins du labyrinthe, pour placer l'entrée et la sortie
+    while True : 
+        maze = [[None for _ in range(size)] for _ in range(size)] # Initialisation d'une matrice vide pour représenter le labyrinthe
+        last_index = size - 1 
+        corners = [[0,0], [0,last_index], [last_index,0], [last_index,last_index]] # Création d'une liste avec les coordonnées des quatre coins du labyrinthe, pour placer l'entrée et la sortie
 
-    entry = random.choice(corners) # Choix aléatoire de l'entrée du labyrinthe
-    maze[entry[0]][entry[1]] = 0
-    corners.remove(entry) # On retire l'entrée de la liste des coins, pour pouvoir choisir un autre coin comme sortie 
+        entry = random.choice(corners) # Choix aléatoire de l'entrée du labyrinthe
+        maze[entry[0]][entry[1]] = 0
+        corners.remove(entry) # On retire l'entrée de la liste des coins, pour pouvoir choisir un autre coin comme sortie 
 
-    exit = random.choice(corners) # Choix aléatoire de la sortie
-    maze[exit[0]][exit[1]] = 2
+        exit = random.choice(corners) # Choix aléatoire de la sortie
+        maze[exit[0]][exit[1]] = 2
 
-    nb_elements = size**2 
-    nb0 = int(nb_elements*path_probability) # Nombre de 0 (chemins)
-    nb1 = nb_elements - nb0 # Nombre de 1 (murs)
-    
-    list_elements = [0]*(nb0-2) + [1]*nb1 # On crée une liste contenant le nombre de 0 et de 1 correspondant à la probabilité de 0 rentrée par l'utilisateur (on retire deux 0, car on les a déjà associés à l'entrée et la sortie)
-    random.shuffle(list_elements) 
+        nb_elements = size**2 
+        nb0 = int(nb_elements*path_probability) # Nombre de 0 (chemins)
+        nb1 = nb_elements - nb0 # Nombre de 1 (murs)
+        
+        list_elements = [0]*(nb0-2) + [1]*nb1 # On crée une liste contenant le nombre de 0 et de 1 correspondant à la probabilité de 0 rentrée par l'utilisateur (on retire deux 0, car on les a déjà associés à l'entrée et la sortie)
+        random.shuffle(list_elements) 
 
-    index = 0
-    for i in range(size):
-        for j in range(size):
-            if [i,j] != entry and [i,j] != exit :
-                maze[i][j] = list_elements[index]  # On associe à chaque élément du labyrinthe une valeur de la liste de 0 et 1, triée au hasard, en respectant ainsi la probabilité de chemin donnée
-                index += 1
+        index = 0
+        for i in range(size):
+            for j in range(size):
+                if [i,j] != entry and [i,j] != exit :
+                    maze[i][j] = list_elements[index]  # On associe à chaque élément du labyrinthe une valeur de la liste de 0 et 1, triée au hasard, en respectant ainsi la probabilité de chemin donnée
+                    index += 1
 
-    return maze, entry
+        if is_solvable(maze, entry) : # On ne renvoie le labyrinthe que s'il est possible d'aller de son entrée à sa sortie
+            return maze, entry
+
+def is_solvable(maze, entry) :
+    # Vérifie si le labyrinthe possède un chemin valide, permettant d'accéder à la sortie
+    visit_history = [entry] # Liste des cases du labyrinthe déjà visitées
+    visit_queue = [entry] # File d'attente des prochaines cases à explorer
+
+    while len(visit_queue) != 0 : # Algorithme de BFS 
+        v = visit_queue[0] # Case du labyrinthe qu'on explore
+
+        if maze[v[0]][v[1]] == 2 : # Si la case qu'on explore est la sortie, alors il existe un chemin menant à elle et on renvoie True
+            return True
+        
+        else : 
+            v_left = [v[0] - 1, v[1]]
+            v_right = [v[0] + 1, v[1]]
+            v_up = [v[0], v[1] + 1]
+            v_down = [v[0], v[1] - 1]
+
+            neighboors = [v_left, v_right, v_up, v_down]
+
+            for e in neighboors :
+                condition_len = e[0] >= 0 and e[0] < len(maze) and e[1] >= 0 and e[1] < len(maze)
+                if condition_len and maze[e[0]][e[1]] != 1 and e not in visit_history : 
+                    visit_history.append(e)
+                    visit_queue.append(e)
+        visit_queue.pop(0)
+
+    return False
 
 def create_perso(start):
     # Création du dictionnaire représentant le joueur 
@@ -67,6 +97,7 @@ def create_items(maze, num_items, entry):
         for k in range(num_items):
             (x,y) = random.choice(cases_free)
             list_items.append((x,y))
+            cases_free.remove((x,y))
     return list_items
         
 def collect_item(perso, items):
@@ -106,6 +137,7 @@ def create_teleport(maze, entry, n):
             (xt_2, yt_2) = random.choice(cases_free)
             cases_free.remove((xt_2, yt_2))
             teleporter[(xt_1, yt_1)] = (xt_2, yt_2)
+            teleporter[(xt_2, yt_2)] = (xt_1, yt_1)
     return teleporter            
 
 def teleport(p, teleporter):
@@ -114,11 +146,6 @@ def teleport(p, teleporter):
 
     if pos in teleporter: # On vérifie si on est sur une entrée de téléporteur
         (p["x"], p["y"]) = teleporter[pos]
-
-    for start, end in teleporter.items(): # On vérifie si on est sur une sortie de téléporteur et on assure ainsi la bidirectionnalité des téléporteurs
-        if pos == end:
-            (p["x"], p["y"]) = start
-            return
 
 # --- AFFICHAGE ---
 
