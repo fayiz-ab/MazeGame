@@ -12,15 +12,15 @@ SYMBOLS = {0: ' ', 1: '#', 2: 'S'}
 # Format : Chiffre du niveau : ("Nom", Taille du labyrinthe, Probabilité de chemin)
 # Plus la probabilité est faible, plus il y a de murs
 DIFFICULTY = {
-    9 : ("Easy ++++", 5, 0.9), 
-    8 : ("Easy +++", 10, 0.8), 
-    7 : ("Easy ++", 15, 0.7), 
-    6 : ("Easy +", 20, 0.6), 
-    5 : ("Normal", 25, 0.5), 
-    4 : ("Difficult +", 30, 0.4), 
-    3 : ("Difficult ++", 35, 0.3), 
-    2 : ("Difficult +++", 40, 0.2), 
-    1 : ("Difficult ++++", 45, 0.1)
+    9 : ("Easy ++++", 7, 0.90), 
+    8 : ("Easy +++", 9, 0.85), 
+    7 : ("Easy ++", 11, 0.80), 
+    6 : ("Easy +", 13, 0.75), 
+    5 : ("Normal", 15, 0.70), 
+    4 : ("Difficult +", 17, 0.65), 
+    3 : ("Difficult ++", 20, 0.60), 
+    2 : ("Difficult +++", 22, 0.55), 
+    1 : ("Difficult ++++", 25, 0.50)
 }
 
 # Touches de mouvement

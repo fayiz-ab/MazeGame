@@ -9,6 +9,7 @@ def play_game():
     # Initialisation du premier niveau
     labyrinthe_lvl, game_entry = engine.level(n)
     joueur = engine.create_perso(game_entry)
+    garde = engine.create_enemy(labyrinthe_lvl, game_entry)
     items_maze = engine.create_items(labyrinthe_lvl, 10-n, game_entry)
     teleporters_maze = engine.create_teleport(labyrinthe_lvl, game_entry, 10-n)
 
@@ -25,19 +26,20 @@ def play_game():
                 # Rechargement du niveau sauvegardé
                 labyrinthe_lvl, game_entry = engine.level(n)
                 joueur = engine.create_perso(game_entry)
+                garde = engine.create_enemy(labyrinthe_lvl, game_entry)
                 items_maze = engine.create_items(labyrinthe_lvl, 10-n, game_entry)
                 teleporters_maze = engine.create_teleport(labyrinthe_lvl, game_entry, 10-n)
-                engine.draw_maze(labyrinthe_lvl, items_maze, joueur, teleporters_maze)
+                engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
                 break
             elif answer.lower() == "no":
                 # On recommence au premier niveau (n=9)
-                engine.draw_maze(labyrinthe_lvl, items_maze, joueur, teleporters_maze)
+                engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
                 break
             else:
                 print("Invalid input. Please type 'yes' or 'no'.") 
     else: # Si l'utilisateur n'avait pas joué auparavant on enregistre son nom et on lui crée un labyrinthe du premier niveau
         engine.save_progress(username, n)
-        engine.draw_maze(labyrinthe_lvl, items_maze, joueur, teleporters_maze)
+        engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
 
     start_time = time.time()
 
@@ -53,9 +55,16 @@ def play_game():
         error = engine.update_p(labyrinthe_lvl, d, joueur) # On tente de faire le mouvement et on capture une erreur éventuelle (la fonction update_p renvoie None si le mouvement est possible, ou une chaîne de caractère indiquant l'erreur si le mouvement est impossible)        
         if error: # S'il y a une erreur (donc si ce n'est pas None), on l'affiche
             print(f"{error}")
+        engine.update_enemy(labyrinthe_lvl, garde, joueur)
+
+        if garde["x"] == joueur["x"] and garde["y"] == joueur["y"] :
+                engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
+                print("\nGAME OVER ! The gard caught you !")
+                break
+
         engine.collect_item(joueur, items_maze)
         engine.teleport(joueur, teleporters_maze)
-        engine.draw_maze(labyrinthe_lvl, items_maze, joueur, teleporters_maze)
+        engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
 
         # Victoire du niveau
         if labyrinthe_lvl[joueur["x"]][joueur["y"]] == 2:
@@ -68,7 +77,7 @@ def play_game():
             time.sleep(2)
 
             if n == 1:
-                print("YOU FINISHED THE GAME! LEGEND!")
+                print("YOU FINISHED THE GAME! CONGRATS!")
                 break
 
             print("\n--- NEXT LEVEL ---")
@@ -78,11 +87,12 @@ def play_game():
             # Création d'un nouveau labyrinthe pour le niveau suivant
             labyrinthe_lvl, game_entry = engine.level(n)
             joueur = engine.create_perso(game_entry)
+            garde = engine.create_enemy(labyrinthe_lvl, game_entry)
             items_maze = engine.create_items(labyrinthe_lvl, 10-n, game_entry)
             teleporters_maze = engine.create_teleport(labyrinthe_lvl, game_entry, 10-n)
             
             start_time = time.time()
-            engine.draw_maze(labyrinthe_lvl, items_maze, joueur, teleporters_maze)
+            engine.draw_maze(labyrinthe_lvl, items_maze, joueur, garde, teleporters_maze)
 
 def main_menu():
     # Affiche le menu d'accueil

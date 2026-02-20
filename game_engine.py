@@ -37,7 +37,7 @@ def create_maze(size, path_probability):
         if is_solvable(maze, entry) : # On ne renvoie le labyrinthe que s'il est possible d'aller de son entrée à sa sortie
             return maze, entry
 
-def is_solvable(maze, entry) :
+def is_solvable(maze, entry):
     # Vérifie si le labyrinthe possède un chemin valide, permettant d'accéder à la sortie
     visit_history = [entry] # Liste des cases du labyrinthe déjà visitées
     visit_queue = [entry] # File d'attente des prochaines cases à explorer
@@ -57,8 +57,8 @@ def is_solvable(maze, entry) :
             neighboors = [v_left, v_right, v_up, v_down]
 
             for e in neighboors :
-                condition_len = e[0] >= 0 and e[0] < len(maze) and e[1] >= 0 and e[1] < len(maze)
-                if condition_len and maze[e[0]][e[1]] != 1 and e not in visit_history : 
+                is_in_bounds = e[0] >= 0 and e[0] < len(maze) and e[1] >= 0 and e[1] < len(maze)
+                if is_in_bounds and maze[e[0]][e[1]] != 1 and e not in visit_history : 
                     visit_history.append(e)
                     visit_queue.append(e)
         visit_queue.pop(0)
@@ -85,21 +85,98 @@ def update_p(maze, letter, p):
 
     p["x"], p["y"] = newx, newy
 
+def create_enemy(maze, entry):
+    # Crée un ennemi
+    free_cells = free_cell(maze, entry)
+    dist_min = len(maze) // 2
+    valid_spawns = []
+    for e in free_cells :
+        dist = abs(e[0] - entry[0]) + abs(e[1] - entry[1])
+        if dist >= dist_min :
+            valid_spawns.append(e)
+    enemy_coord = random.choice(valid_spawns)
+    return {"char" : "X", "x" : enemy_coord[0], "y" : enemy_coord[1]}
+
+def update_enemy(maze, enemy, player):
+    # Calcule le prochain pas de l'ennemi vers le joueur en utilisant l'algorithme A*
+    # Retourne les coordonnées de la prochaine case où l'ennemi doit se déplacer pour se rapprocher du joueur
+    
+    # Extraction des coordonnées du joueur et de l'ennemi
+    e_pos = (enemy['x'], enemy['y'])
+    p_pos = (player['x'], player['y'])
+    # Initialisation 
+    dist_enemy = abs(e_pos[0] - p_pos[0]) + abs(e_pos[1] - p_pos[1])
+    open_cells = {e_pos : dist_enemy} # Cases à explorer
+    closed_cells = set() # Cases traitées
+    parents_cells = {e_pos : None} # Dictionnaire stockant le chemin
+    g_score = {e_pos : 0} # Coût réel (nombre de pas depuis le départ) de chaque case qu'on explore
+
+    # Algorithme A*
+    while len(open_cells) != 0 :
+
+        # Sélection de la case avec le score le plus bas
+        current_cell = None
+        min_score_open = 10e10
+        for key, value in open_cells.items() :
+            if value <= min_score_open :
+                min_score_open = value
+                current_cell = key
+
+        if current_cell == p_pos :  # Condition de victoire, si on atteint le joueur
+            break
+        
+        # Identification des quatre voisins adjacents
+        neighbor_l = [current_cell[0] - 1, current_cell[1]]
+        neighbor_r = [current_cell[0] + 1, current_cell[1]]
+        neighbor_u = [current_cell[0], current_cell[1] + 1]
+        neighbor_d = [current_cell[0], current_cell[1] - 1]
+        neighbors = [neighbor_l, neighbor_r, neighbor_u, neighbor_d]
+
+        # Exploration de chaque voisin
+        for neighbor in neighbors :
+            is_in_bounds = neighbor[0] >= 0 and neighbor[0] < len(maze) and neighbor[1] >= 0 and neighbor[1] < len(maze)
+            if is_in_bounds and maze[neighbor[0]][neighbor[1]] != 1 and tuple(neighbor) not in closed_cells : 
+                # Calcul de la distance restante et du nouveau coût
+                dist = abs(neighbor[0] - p_pos[0]) + abs(neighbor[1] - p_pos[1])
+                g_score[tuple(neighbor)] = g_score[current_cell] + 1
+                f_score = dist + g_score[tuple(neighbor)]
+
+                # Mise à jour des dictionnaires
+                open_cells[tuple(neighbor)] = f_score
+                parents_cells[tuple(neighbor)] = current_cell
+                
+        open_cells.pop(current_cell)
+        closed_cells.add(current_cell)
+
+    # Reconstruction du chemin
+    if p_pos not in parents_cells : # Si le joueur est inaccessible l'ennemi ne bouge pas
+        return enemy
+
+    path_cell = p_pos
+    while parents_cells[path_cell] != e_pos : # On remonte parents_cells depuis le joueur jusqu'à trouver la case dont le parent est l'ennemi 
+        path_cell = parents_cells[path_cell]
+
+    enemy['x'], enemy['y'] = path_cell[0], path_cell[1]
+
 def create_items(maze, num_items, entry):
     # Place des objets (I) aléatoirement sur les cases libres du labyrinthe
     list_items = []
-    cases_free = []
+    free_cells = free_cell(maze, entry)
+    if num_items <= len(free_cells) :
+        for k in range(num_items):
+            (x,y) = random.choice(free_cells)
+            list_items.append((x,y))
+            free_cells.remove((x,y))
+    return list_items
+
+def free_cell(maze, entry):
+    free_cells = []
     for i in range(len(maze)):
         for j in range(len(maze)):
-            if maze[i][j] != 1 and maze[i][j] != 2 and maze[i][j] != entry :
-                cases_free.append((i,j))
-    if num_items <= len(cases_free) :
-        for k in range(num_items):
-            (x,y) = random.choice(cases_free)
-            list_items.append((x,y))
-            cases_free.remove((x,y))
-    return list_items
-        
+            if maze[i][j] != 1 and maze[i][j] != 2 and (i, j) != tuple(entry) :
+                free_cells.append((i,j))
+    return free_cells
+
 def collect_item(perso, items):
     # Vérifie si le joueur est sur un objet, et si c'est le cas, le ramasse 
     items_collected = 0
@@ -149,7 +226,7 @@ def teleport(p, teleporter):
 
 # --- AFFICHAGE ---
 
-def draw_maze(maze, items, p, teleporters):
+def draw_maze(maze, items, p, enemy, teleporters):
     # Affiche le labyrinthe, le joueur, les objets et les téléporteurs dans la console
     dico = settings.SYMBOLS
     
@@ -157,6 +234,8 @@ def draw_maze(maze, items, p, teleporters):
         for j in range(len(maze[i])):
             if i == p["x"] and j == p["y"] :
                 print(p["char"], end=" ") # Affichage du joueur
+            elif i == enemy["x"] and j == enemy["y"] :
+                print(enemy["char"], end=" ") # Affichage de l'ennemi
             elif (i,j) in items:
                 print("I", end=" ") # Affichage d'un objet
             elif (i, j) in teleporters.keys() or (i, j) in teleporters.values():
